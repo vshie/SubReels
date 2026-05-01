@@ -5,11 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>SubReels — PAUV Recording</title>
 
-  <link rel="icon" type="image/png" href="/static/logo.png">
-  <!-- All third-party assets are vendored under /static/vendor/ so the extension works fully offline. -->
-  <link href="/static/vendor/css/roboto.css" rel="stylesheet">
-  <link href="/static/vendor/css/materialdesignicons.min.css" rel="stylesheet">
-  <link href="/static/vendor/css/vuetify.min.css" rel="stylesheet">
+  <!-- Force the page URL to end with a slash so relative URLs resolve under the
+       BlueOS reverse proxy (e.g. /extensionv2/subreels/) AND on direct port access. -->
+  <base href="./">
+  <link rel="icon" type="image/png" href="static/logo.png">
+  <!-- All third-party assets are vendored under static/vendor/ so the extension works fully offline. -->
+  <link href="static/vendor/css/roboto.css" rel="stylesheet">
+  <link href="static/vendor/css/materialdesignicons.min.css" rel="stylesheet">
+  <link href="static/vendor/css/vuetify.min.css" rel="stylesheet">
 
   <style>
     [v-cloak] { display: none; }
@@ -82,7 +85,7 @@
     <v-app>
       <v-app-bar app flat color="primary" dark dense extension-height="48">
         <v-img
-          src="/static/logo.png"
+          src="static/logo.png"
           max-height="44"
           max-width="40"
           contain
@@ -126,7 +129,7 @@
                 <!-- Hero / brand card -->
                 <v-col cols="12" md="4">
                   <v-card class="logo-card pa-4 d-flex flex-column align-center" elevation="3" rounded="lg">
-                    <img src="/static/logo.png" alt="Profiling Autonomous Underwater Vehicle">
+                    <img src="static/logo.png" alt="Profiling Autonomous Underwater Vehicle">
                     <div class="tagline text-caption text-uppercase mt-3 text-center">
                       Tetherless Subsea Video Capture
                     </div>
@@ -250,7 +253,7 @@
                       class="elevation-0"
                     >
                       <template v-slot:item.actions="{ item }">
-                        <v-btn :href="'/download/' + item.name" small text color="primary">
+                        <v-btn :href="'download/' + item.name" small text color="primary">
                           <v-icon left small>mdi-download</v-icon> Download
                         </v-btn>
                       </template>
@@ -405,20 +408,26 @@
                   Every endpoint is a simple HTTP GET that returns JSON.
                 </p>
                 <v-simple-table dense>
-                  <thead>
-                    <tr>
-                      <th style="width: 80px;">Method</th>
-                      <th style="width: 220px;">Path</th>
-                      <th>Purpose</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="e in endpoints" :key="e.path">
-                      <td><code class="inline">{{ e.method }}</code></td>
-                      <td><code class="inline">{{ e.path }}</code></td>
-                      <td>{{ e.purpose }}</td>
-                    </tr>
-                  </tbody>
+                  <!-- v-slot:default is REQUIRED: v-simple-table renders a <div>,
+                       and the browser HTML parser will foster-parent raw <thead>/<tbody>/<tr>
+                       elements out of a non-table parent. Wrapping in <template> keeps
+                       the tags inert until Vue compiles the template, preserving v-for scope. -->
+                  <template v-slot:default>
+                    <thead>
+                      <tr>
+                        <th style="width: 80px;">Method</th>
+                        <th style="width: 220px;">Path</th>
+                        <th>Purpose</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="endpoint in endpoints" :key="endpoint.path">
+                        <td><code class="inline">{{ endpoint.method }}</code></td>
+                        <td><code class="inline">{{ endpoint.path }}</code></td>
+                        <td>{{ endpoint.purpose }}</td>
+                      </tr>
+                    </tbody>
+                  </template>
                 </v-simple-table>
               </v-card>
 
@@ -486,22 +495,24 @@ HTTP_PORT = 5423
                   <code class="inline">HOVER_T_DEPTH</code>.
                 </p>
                 <v-simple-table dense>
-                  <thead>
-                    <tr>
-                      <th style="width: 200px;">Parameter</th>
-                      <th style="width: 90px;">Default</th>
-                      <th style="width: 70px;">Units</th>
-                      <th>Description</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="p in hoverParams" :key="p.name">
-                      <td><code class="inline">{{ p.name }}</code></td>
-                      <td>{{ p.default }}</td>
-                      <td>{{ p.units }}</td>
-                      <td>{{ p.desc }}</td>
-                    </tr>
-                  </tbody>
+                  <template v-slot:default>
+                    <thead>
+                      <tr>
+                        <th style="width: 200px;">Parameter</th>
+                        <th style="width: 90px;">Default</th>
+                        <th style="width: 70px;">Units</th>
+                        <th>Description</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="param in hoverParams" :key="param.name">
+                        <td><code class="inline">{{ param.name }}</code></td>
+                        <td>{{ param.default }}</td>
+                        <td>{{ param.units }}</td>
+                        <td>{{ param.desc }}</td>
+                      </tr>
+                    </tbody>
+                  </template>
                 </v-simple-table>
               </v-card>
 
@@ -556,9 +567,9 @@ HTTP_PORT = 5423
     </v-app>
   </div>
 
-  <script src="/static/vendor/js/vue.min.js"></script>
-  <script src="/static/vendor/js/vuetify.min.js"></script>
-  <script src="/static/vendor/js/axios.min.js"></script>
+  <script src="static/vendor/js/vue.min.js"></script>
+  <script src="static/vendor/js/vuetify.min.js"></script>
+  <script src="static/vendor/js/axios.min.js"></script>
 
   <script>
     new Vue({
@@ -692,7 +703,7 @@ HTTP_PORT = 5423
         async startRecording() {
           this.busy = true;
           try {
-            const { data } = await axios.get('/start');
+            const { data } = await axios.get('start');
             if (!data.success) throw new Error(data.message || 'Failed to start recording');
             await this.fetchStatus();
           } catch (e) {
@@ -704,7 +715,7 @@ HTTP_PORT = 5423
         async stopRecording() {
           this.busy = true;
           try {
-            const { data } = await axios.get('/stop');
+            const { data } = await axios.get('stop');
             if (!data.success) throw new Error(data.message || 'Failed to stop recording');
             await this.fetchStatus();
             await this.fetchVideos();
@@ -716,7 +727,7 @@ HTTP_PORT = 5423
         },
         async fetchStatus() {
           try {
-            const { data } = await axios.get('/status');
+            const { data } = await axios.get('status');
             this.status = data;
             const wasRecording = this.recording;
             this.recording = !!data.recording;
@@ -735,7 +746,7 @@ HTTP_PORT = 5423
         },
         async fetchTelemetry() {
           try {
-            const { data } = await axios.get('/telemetry');
+            const { data } = await axios.get('telemetry');
             if (data.success) this.telemetry = data;
           } catch (e) {
             console.error('telemetry:', e);
@@ -744,7 +755,7 @@ HTTP_PORT = 5423
         async fetchVideos() {
           this.videosLoading = true;
           try {
-            const { data } = await axios.get('/list');
+            const { data } = await axios.get('list');
             this.videos = data.videos || [];
           } catch (e) {
             this.showError('Failed to load video list: ' + (e.message || 'unknown error'));

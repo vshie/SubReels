@@ -201,6 +201,8 @@ def index():
 
 @app.route('/register_service')
 def register_service():
+    # works_in_relative_paths=true tells BlueOS the UI uses relative URLs and can be
+    # safely served from /extensionv2/<sanitized_name>/ without breaking asset paths.
     return '''
     {
         "name": "SubReels",
@@ -209,7 +211,8 @@ def register_service():
         "company": "Blue Robotics",
         "version": "0.1.0",
         "webpage": "https://github.com/vshie/SubReels",
-        "api": "https://github.com/bluerobotics/BlueOS-docker"
+        "api": "https://github.com/bluerobotics/BlueOS-docker",
+        "works_in_relative_paths": true
     }
     '''
 
