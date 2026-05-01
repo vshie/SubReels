@@ -1,368 +1,778 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SubReels</title>
-    <script defer src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 20px auto;
-            padding: 0 20px;
-            background-color: white;
-            color: black;
-        }
-        
-        .status-container {
-            margin: 20px 0;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            background-color: white;
-        }
-        
-        .controls {
-            margin: 20px 0;
-        }
-        
-        .error {
-            color: red;
-            display: none;
-            margin: 10px 0;
-            padding: 10px;
-            background-color: #ffe6e6;
-            border: 1px solid #ff9999;
-            border-radius: 4px;
-        }
-        
-        #recordingStatus {
-            font-weight: bold;
-        }
-        
-        #recordingDuration {
-            font-family: monospace;
-            font-size: 1.2em;
-            margin-left: 10px;
-        }
-        
-        button {
-            padding: 8px 16px;
-            margin-right: 10px;
-            cursor: pointer;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            background-color: white;
-        }
-        
-        button:hover {
-            background-color: #f0f0f0;
-        }
-        
-        button:disabled {
-            background-color: #cccccc;
-            cursor: not-allowed;
-        }
-        
-        .recording {
-            color: red;
-            font-weight: bold;
-        }
-        
-        #videoList {
-            list-style: none;
-            padding: 0;
-        }
-        
-        #videoList li {
-            margin: 5px 0;
-            padding: 5px;
-            border-bottom: 1px solid #eee;
-        }
-        
-        #videoList a {
-            text-decoration: none;
-            color: #0066cc;
-        }
-        
-        #videoList a:hover {
-            text-decoration: underline;
-        }
-        
-        .input-group {
-            margin: 15px 0;
-        }
-        
-        .input-group label {
-            margin-right: 10px;
-        }
-        
-        input[type="number"] {
-            padding: 5px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            background-color: white;
-        }
-        
-        .telemetry-container {
-            margin: 20px 0;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-            background-color: #f9f9f9;
-        }
-        
-        .telemetry-title {
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        
-        .telemetry-data {
-            display: flex;
-            justify-content: space-between;
-            flex-wrap: wrap;
-        }
-        
-        .telemetry-item {
-            flex: 1;
-            min-width: 120px;
-            margin: 5px;
-            padding: 8px;
-            background-color: white;
-            border-radius: 4px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-        }
-        
-        .telemetry-item-label {
-            font-size: 0.9em;
-            color: #666;
-        }
-        
-        .telemetry-item-value {
-            font-size: 1.2em;
-            font-weight: bold;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SubReels — PAUV Recording</title>
+
+  <link rel="icon" type="image/png" href="/static/logo.png">
+  <!-- All third-party assets are vendored under /static/vendor/ so the extension works fully offline. -->
+  <link href="/static/vendor/css/roboto.css" rel="stylesheet">
+  <link href="/static/vendor/css/materialdesignicons.min.css" rel="stylesheet">
+  <link href="/static/vendor/css/vuetify.min.css" rel="stylesheet">
+
+  <style>
+    [v-cloak] { display: none; }
+    html, body { overflow-y: auto; }
+
+    /* Parchment-toned card to flatter the steampunk logo against the dark theme. */
+    .logo-card {
+      background: #f4ecd8 !important;
+      border: 1px solid rgba(0, 0, 0, 0.12) !important;
+    }
+    .logo-card img {
+      display: block;
+      margin: 0 auto;
+      max-width: 100%;
+      max-height: 360px;
+      object-fit: contain;
+    }
+    .logo-card .tagline {
+      color: #5a4a2a;
+      letter-spacing: 0.18em;
+    }
+
+    .telemetry-value {
+      font-family: 'Roboto Mono', 'Courier New', monospace;
+      font-weight: 500;
+    }
+
+    .recording-pulse { animation: pulse 1.4s ease-in-out infinite; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%      { opacity: 0.45; }
+    }
+
+    iframe.bluefs { width: 100%; height: 600px; border: none; border-radius: 6px; }
+
+    /* Code blocks for the Setup & Context tab */
+    pre.code-block {
+      background: #14171a;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 0;
+      overflow-x: auto;
+      font-family: 'Roboto Mono', 'Courier New', monospace;
+      font-size: 0.85rem;
+      line-height: 1.55;
+      color: #e0e0e0;
+      white-space: pre;
+    }
+    pre.code-block .com { color: #7c8d6c; font-style: italic; }
+    pre.code-block .kw  { color: #c8a2ff; }
+    pre.code-block .str { color: #d4a14a; }
+    code.inline {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 3px;
+      padding: 1px 6px;
+      font-family: 'Roboto Mono', 'Courier New', monospace;
+      font-size: 0.88em;
+    }
+
+    .doc-section h6 { letter-spacing: 0.04em; }
+    .doc-section p { margin-bottom: 12px; }
+    .doc-section ul, .doc-section ol { margin-bottom: 12px; }
+
+    .v-data-table--dense .v-data-table__wrapper td { font-size: 0.875rem; }
+  </style>
 </head>
 <body>
-    <h1>SubReels</h1>
-    <div style="margin-bottom: 15px; color: #666;">
-        <p>Using camera device: <strong>/dev/video2</strong></p>
-    </div>
-    <div class="status-container">
-        <p>Status: <span id="recordingStatus">Stopped</span><span id="recordingTime" style="display: none;"></span></p>
-    </div>
-    
-    <!-- Telemetry Panel -->
-    <div class="telemetry-container">
-        <div class="telemetry-title">Live Telemetry</div>
-        <div class="telemetry-data">
-            <div class="telemetry-item">
-                <div class="telemetry-item-label">Depth</div>
-                <div class="telemetry-item-value" id="telemetryDepth">--</div>
-            </div>
-            <div class="telemetry-item">
-                <div class="telemetry-item-label">Climb Rate</div>
-                <div class="telemetry-item-value" id="telemetryClimb">--</div>
-            </div>
-            <div class="telemetry-item">
-                <div class="telemetry-item-label">Temperature</div>
-                <div class="telemetry-item-value" id="telemetryTemp">--</div>
-            </div>
-            <div class="telemetry-item">
-                <div class="telemetry-item-label">Lights</div>
-                <div class="telemetry-item-value" id="telemetryLights">--</div>
-            </div>
-            <div class="telemetry-item">
-                <div class="telemetry-item-label">Time</div>
-                <div class="telemetry-item-value" id="telemetryTime">--</div>
-            </div>
-        </div>
-    </div>
+  <div id="app" v-cloak>
+    <v-app>
+      <v-app-bar app flat color="primary" dark dense extension-height="48">
+        <v-img
+          src="/static/logo.png"
+          max-height="44"
+          max-width="40"
+          contain
+          class="mr-3"
+        ></v-img>
+        <v-toolbar-title class="font-weight-bold">SubReels</v-toolbar-title>
+        <span class="text-caption ml-3 d-none d-sm-inline">
+          Profiling Autonomous Underwater Vehicle
+        </span>
+        <v-spacer></v-spacer>
+        <v-chip
+          :color="recording ? 'red' : 'grey darken-2'"
+          :class="{ 'recording-pulse': recording }"
+          dark
+          small
+          class="mr-2"
+        >
+          <v-icon left small>{{ recording ? 'mdi-record' : 'mdi-stop' }}</v-icon>
+          {{ recording ? 'Recording' : 'Idle' }}
+        </v-chip>
+        <span v-if="recording" class="text-caption font-weight-medium">{{ elapsed }}</span>
 
-    <div class="error" id="errorMessage"></div>
-    
-    <div class="controls">
-        <button id="startButton" onclick="startRecording()">Start Recording</button>
-        <button id="stopButton" onclick="stopRecording()" disabled>Stop Recording</button>
-    </div>
-    
-    <h2>Recorded Videos</h2>
-    <ul id="videoList"></ul>
+        <template v-slot:extension>
+          <v-tabs v-model="tab" align-with-title background-color="transparent" slider-color="accent">
+            <v-tab href="#recording">
+              <v-icon left small>mdi-video</v-icon> Recording
+            </v-tab>
+            <v-tab href="#setup">
+              <v-icon left small>mdi-book-open-page-variant</v-icon> Setup &amp; Context
+            </v-tab>
+          </v-tabs>
+        </template>
+      </v-app-bar>
 
-    <!-- Iframe to embed the BlueOS file browser -->
-    <iframe src="" style="width: 100%; height: 600px; border: none;"></iframe>
+      <v-main>
+        <v-tabs-items v-model="tab" class="transparent">
+          <!-- ====================== RECORDING TAB ====================== -->
+          <v-tab-item value="recording">
+            <v-container fluid class="pa-4">
+              <v-row>
+                <!-- Hero / brand card -->
+                <v-col cols="12" md="4">
+                  <v-card class="logo-card pa-4 d-flex flex-column align-center" elevation="3" rounded="lg">
+                    <img src="/static/logo.png" alt="Profiling Autonomous Underwater Vehicle">
+                    <div class="tagline text-caption text-uppercase mt-3 text-center">
+                      Tetherless Subsea Video Capture
+                    </div>
+                  </v-card>
+                </v-col>
 
-<script>
-let recordingTimer;
-let startTime;
-let fileListTimer;
-let telemetryTimer;
-let statusCheckTimer;
+                <!-- Controls + per-stream status + telemetry -->
+                <v-col cols="12" md="8">
+                  <v-card elevation="3" rounded="lg" class="pa-4 mb-4">
+                    <div class="d-flex align-center mb-3">
+                      <v-icon left>mdi-video</v-icon>
+                      <span class="text-h6">Recording</span>
+                      <v-spacer></v-spacer>
+                      <v-chip small :color="recording ? 'red' : 'grey darken-2'" dark>
+                        {{ recording ? 'REC ' + elapsed : 'STOPPED' }}
+                      </v-chip>
+                    </div>
 
-async function startRecording() {
-    try {
-        const response = await axios.get('/start');
-        if (response.data.success) {
-            document.getElementById("errorMessage").style.display = "none";
-            updateUIToRecording();
-        } else {
-            document.getElementById("errorMessage").textContent = response.data.message || "Failed to start recording";
-            document.getElementById("errorMessage").style.display = "block";
-        }
-    } catch (error) {
-        document.getElementById("errorMessage").textContent = error.response?.data?.message || "An unknown error occurred";
-        document.getElementById("errorMessage").style.display = "block";
-    }
-}
+                    <v-row dense class="mb-1">
+                      <v-col cols="12" sm="6">
+                        <v-card outlined class="pa-3 fill-height">
+                          <div class="text-caption text-uppercase grey--text">USB H.264 — exploreHD</div>
+                          <div class="d-flex align-center mt-1">
+                            <v-icon :color="status.h264_process_alive ? 'success' : 'grey'" left>
+                              {{ status.h264_process_alive ? 'mdi-check-circle' : 'mdi-circle-outline' }}
+                            </v-icon>
+                            <span class="text-body-2">{{ h264Label }}</span>
+                          </div>
+                          <div class="text-caption grey--text mt-1">/dev/video2</div>
+                        </v-card>
+                      </v-col>
+                      <v-col cols="12" sm="6">
+                        <v-card outlined class="pa-3 fill-height">
+                          <div class="text-caption text-uppercase grey--text">RTSP H.265 — RadCam</div>
+                          <div class="d-flex align-center mt-1">
+                            <v-icon :color="status.rtsp_process_alive ? 'success' : 'grey'" left>
+                              {{ status.rtsp_process_alive ? 'mdi-check-circle' : 'mdi-circle-outline' }}
+                            </v-icon>
+                            <span class="text-body-2">{{ rtspLabel }}</span>
+                          </div>
+                          <div class="text-caption grey--text mt-1">192.168.2.10:554/stream_0 (UDP)</div>
+                        </v-card>
+                      </v-col>
+                    </v-row>
 
-async function stopRecording() {
-    try {
-        const response = await axios.get('/stop');
-        if (response.data.success) {
-            document.getElementById("errorMessage").style.display = "none";
-            updateUIToStopped();
-            await fetchVideos();
-        }
-    } catch (error) {
-        document.getElementById("errorMessage").textContent = error.response?.data?.error || "An unknown error occurred";
-        document.getElementById("errorMessage").style.display = "block";
-    }
-}
+                    <v-divider class="my-3"></v-divider>
 
-// New function to update UI when recording starts
-function updateUIToRecording() {
-    document.getElementById("recordingStatus").textContent = "Recording";
-    document.getElementById("recordingStatus").className = "recording";
-    document.getElementById("startButton").disabled = true;
-    document.getElementById("stopButton").disabled = false;
-    
-    startTime = new Date();
-    document.getElementById("recordingTime").style.display = "inline";
-    clearInterval(recordingTimer);
-    recordingTimer = setInterval(updateRecordingTime, 1000);
-    
-    // Start more frequent telemetry updates when recording
-    clearInterval(telemetryTimer);
-    telemetryTimer = setInterval(fetchTelemetry, 1000);
-}
+                    <div class="d-flex">
+                      <v-btn
+                        color="red darken-1"
+                        dark
+                        :disabled="recording || busy"
+                        :loading="busy && !recording"
+                        @click="startRecording"
+                      >
+                        <v-icon left>mdi-record</v-icon> Start
+                      </v-btn>
+                      <v-btn
+                        class="ml-2"
+                        color="grey darken-3"
+                        dark
+                        :disabled="!recording || busy"
+                        :loading="busy && recording"
+                        @click="stopRecording"
+                      >
+                        <v-icon left>mdi-stop</v-icon> Stop
+                      </v-btn>
+                    </div>
+                  </v-card>
 
-// New function to update UI when recording stops
-function updateUIToStopped() {
-    document.getElementById("recordingStatus").textContent = "Stopped";
-    document.getElementById("recordingStatus").className = "";
-    document.getElementById("startButton").disabled = false;
-    document.getElementById("stopButton").disabled = true;
-    
-    clearInterval(recordingTimer);
-    document.getElementById("recordingTime").style.display = "none";
-    
-    // Slow down telemetry updates when not recording
-    clearInterval(telemetryTimer);
-    telemetryTimer = setInterval(fetchTelemetry, 5000);
-}
+                  <v-card elevation="3" rounded="lg" class="pa-4">
+                    <div class="d-flex align-center mb-3">
+                      <v-icon left>mdi-gauge</v-icon>
+                      <span class="text-h6">Live telemetry</span>
+                      <v-spacer></v-spacer>
+                      <span class="text-caption grey--text">
+                        refreshing every {{ recording ? '1' : '5' }}s
+                      </span>
+                    </div>
+                    <v-row dense>
+                      <v-col
+                        v-for="t in telemetryTiles"
+                        :key="t.label"
+                        cols="6"
+                        sm="4"
+                        md="2"
+                      >
+                        <v-card outlined class="pa-3 text-center fill-height">
+                          <v-icon :color="t.color">{{ t.icon }}</v-icon>
+                          <div class="text-caption text-uppercase grey--text mt-1">{{ t.label }}</div>
+                          <div class="text-h6 telemetry-value">{{ t.value }}</div>
+                        </v-card>
+                      </v-col>
+                    </v-row>
+                  </v-card>
+                </v-col>
+              </v-row>
 
-function updateRecordingTime() {
-    const now = new Date();
-    const diff = now - startTime;
-    const hours = Math.floor(diff / 3600000);
-    const minutes = Math.floor((diff % 3600000) / 60000);
-    const seconds = Math.floor((diff % 60000) / 1000);
-    const timeString = ` (${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')})`;
-    document.getElementById("recordingTime").innerText = timeString;
-}
+              <!-- Recordings -->
+              <v-row class="mt-2">
+                <v-col cols="12">
+                  <v-card elevation="3" rounded="lg" class="pa-4">
+                    <div class="d-flex align-center mb-3">
+                      <v-icon left>mdi-folder-video</v-icon>
+                      <span class="text-h6">Recordings</span>
+                      <v-chip small class="ml-3">{{ videos.length }}</v-chip>
+                      <v-spacer></v-spacer>
+                      <v-btn small text @click="fetchVideos" :loading="videosLoading">
+                        <v-icon left small>mdi-refresh</v-icon> Refresh
+                      </v-btn>
+                    </div>
+                    <v-data-table
+                      :headers="videoHeaders"
+                      :items="videoItems"
+                      :loading="videosLoading"
+                      :items-per-page="10"
+                      :sort-by="['recorded']"
+                      :sort-desc="[true]"
+                      dense
+                      no-data-text="No recordings yet — start your first capture."
+                      class="elevation-0"
+                    >
+                      <template v-slot:item.actions="{ item }">
+                        <v-btn :href="'/download/' + item.name" small text color="primary">
+                          <v-icon left small>mdi-download</v-icon> Download
+                        </v-btn>
+                      </template>
+                    </v-data-table>
+                  </v-card>
+                </v-col>
+              </v-row>
 
-// New function to check recording status from the server
-async function checkRecordingStatus() {
-    try {
-        const response = await axios.get('/status');
-        const isRecording = response.data.recording;
-        const currentUIState = document.getElementById("recordingStatus").textContent === "Recording";
-        
-        // If status has changed, update UI to match
-        if (isRecording && !currentUIState) {
-            console.log("Detected recording started externally");
-            // Set startTime based on server's start_time if available
-            if (response.data.start_time) {
-                startTime = new Date(response.data.start_time);
-            } else {
-                startTime = new Date();
+              <!-- BlueOS file browser -->
+              <v-row class="mt-2">
+                <v-col cols="12">
+                  <v-expansion-panels flat>
+                    <v-expansion-panel>
+                      <v-expansion-panel-header>
+                        <div>
+                          <v-icon left>mdi-folder-open</v-icon>
+                          BlueOS file browser
+                          <span class="text-caption grey--text ml-2">extensions/subreels</span>
+                        </div>
+                      </v-expansion-panel-header>
+                      <v-expansion-panel-content>
+                        <iframe :src="fileBrowserUrl" class="bluefs"></iframe>
+                      </v-expansion-panel-content>
+                    </v-expansion-panel>
+                  </v-expansion-panels>
+                </v-col>
+              </v-row>
+
+              <v-row>
+                <v-col cols="12" class="text-center text-caption grey--text">
+                  SubReels v0.1.0 · Blue Robotics · MAVLink2REST telemetry burned to .ass subtitles
+                </v-col>
+              </v-row>
+            </v-container>
+          </v-tab-item>
+
+          <!-- ====================== SETUP & CONTEXT TAB ====================== -->
+          <v-tab-item value="setup">
+            <v-container class="pa-4 doc-section" style="max-width: 1100px;">
+
+              <!-- About -->
+              <v-card elevation="3" rounded="lg" class="pa-5 mb-4">
+                <div class="d-flex align-center mb-3">
+                  <v-icon left>mdi-information-outline</v-icon>
+                  <span class="text-h6">What SubReels is for</span>
+                </div>
+                <p>
+                  SubReels is a BlueOS extension that records video <strong>onboard the vehicle</strong>,
+                  on demand or on a schedule, and burns live MAVLink-derived telemetry into a
+                  <code class="inline">.ass</code> subtitle sidecar alongside each recording.
+                  It is aimed at the niche where the camera feed cannot be sent to the surface in real time —
+                  drop-cameras, AUVs, and other tetherless platforms where the recording must be saved on the vehicle itself.
+                </p>
+                <p>Two streams are captured in parallel when both sources are available:</p>
+                <ul>
+                  <li><strong>USB H.264</strong> from an exploreHD camera on <code class="inline">/dev/video2</code></li>
+                  <li>
+                    <strong>RTSP H.265</strong> from a RadCam at
+                    <code class="inline">rtsp://admin:blue@192.168.2.10:554/stream_0</code>
+                    (UDP transport; <code class="inline">h265parse config-interval=-1</code> re-inserts VPS/SPS/PPS on each IDR)
+                  </li>
+                </ul>
+                <p>
+                  If <code class="inline">/dev/video2</code> is not present at start time, the USB recording is silently skipped
+                  and the RTSP stream still records. Recording state and per-stream liveness are reported on the
+                  <strong>Recording</strong> tab and via the <code class="inline">/status</code> endpoint.
+                </p>
+                <v-alert type="info" outlined dense class="mt-3 mb-0">
+                  <strong>Adjacent extensions.</strong>
+                  Blue Robotics' <em>DashCam</em> (Willian Galvani) auto-records any RTSP stream when the vehicle is armed
+                  and is available in the BlueOS Extensions Manager without manual install.
+                  BlueOS 1.5+ ships a similar &ldquo;record on arm&rdquo; feature with Foxglove playback.
+                  SubReels exists for the case where you need <strong>explicit start/stop control from a script</strong>
+                  (or an external service) instead of tying recording to ARM state.
+                </v-alert>
+              </v-card>
+
+              <!-- Camera setup gotchas -->
+              <v-card elevation="3" rounded="lg" class="pa-5 mb-4">
+                <div class="d-flex align-center mb-3">
+                  <v-icon left>mdi-camera-iris</v-icon>
+                  <span class="text-h6">Camera setup gotchas</span>
+                </div>
+                <v-alert type="warning" outlined prominent border="left" class="mb-3">
+                  <strong>Do not add <code class="inline">/dev/video2</code> to the BlueOS Video Streams page.</strong>
+                  SubReels needs exclusive access to the USB camera while recording, so configuring it as a
+                  Video Stream in BlueOS will prevent the extension from opening it (and vice versa).
+                  As a result, you will <strong>not</strong> see a Cockpit preview from the USB camera while this extension is installed.
+                  This is by design — for a tetherless dive there is no surface to preview to anyway.
+                </v-alert>
+                <p>
+                  The RTSP H.265 endpoint is currently hardcoded to
+                  <code class="inline">rtsp://admin:blue@192.168.2.10:554/stream_0</code>
+                  in <code class="inline">app/main.py</code>
+                  (<code class="inline">RTSP_H265_ENDPOINT</code> at the top of the file).
+                  If your IP camera lives at a different address, uses different credentials, or speaks a different
+                  RTSP path, edit that constant and rebuild the image.
+                </p>
+              </v-card>
+
+              <!-- Enabling Lua -->
+              <v-card elevation="3" rounded="lg" class="pa-5 mb-4">
+                <div class="d-flex align-center mb-3">
+                  <v-icon left>mdi-script-text-play-outline</v-icon>
+                  <span class="text-h6">Enabling Lua scripting on the autopilot</span>
+                </div>
+                <p>
+                  ArduPilot's Lua engine is disabled by default. To run a control script on the autopilot
+                  (e.g. the VP-AUV dive state machine in <code class="inline">HAUV.lua</code>), flip a single parameter:
+                </p>
+                <ol>
+                  <li>Open BlueOS &rarr; <strong>Vehicle Setup &rarr; Autopilot Parameters</strong>.</li>
+                  <li>Set <code class="inline">SCR_ENABLE = 1</code>.</li>
+                  <li>Reboot the autopilot (<strong>Vehicle Setup &rarr; Autopilot &rarr; Restart</strong>).</li>
+                  <li>
+                    <em>Recommended:</em> raise <code class="inline">SCR_HEAP_SIZE</code> to at least
+                    <code class="inline">100000</code> if your script does string-heavy work like building HTTP requests
+                    or holding many parameter bindings.
+                  </li>
+                </ol>
+                <p>
+                  Drop your <code class="inline">.lua</code> files into <code class="inline">/APM/scripts/</code>
+                  on the BlueOS host (the easiest route is the BlueOS file browser at
+                  <code class="inline">http://&lt;host&gt;:7777/files/ardupilot-firmware/scripts/</code>).
+                  ArduPilot loads them on autopilot boot; restart the autopilot after editing to pick up changes.
+                  Lua errors surface as GCS messages in Cockpit's notification area with the offending line number,
+                  which makes the
+                  <em>edit &rarr; restart autopilot &rarr; observe in SITL</em>
+                  iteration loop fast.
+                </p>
+                <v-alert type="info" outlined dense class="mb-0">
+                  Test the dive logic in <strong>SITL</strong> first. The repo's <code class="inline">HAUV.lua</code>
+                  exposes <code class="inline">HOVER_SIM_MODE = 1</code> which simulates the physical
+                  start switch so the full state machine
+                  (countdown &rarr; descend &rarr; bottom-strike &rarr; ascend-to-hover &rarr; surface) runs end-to-end on a
+                  desk before you trust the wiring at 400 m.
+                </v-alert>
+              </v-card>
+
+              <!-- HTTP API -->
+              <v-card elevation="3" rounded="lg" class="pa-5 mb-4">
+                <div class="d-flex align-center mb-3">
+                  <v-icon left>mdi-api</v-icon>
+                  <span class="text-h6">HTTP control endpoints</span>
+                  <v-spacer></v-spacer>
+                  <v-chip small outlined>port {{ servicePort }}</v-chip>
+                </div>
+                <p>
+                  SubReels listens on TCP port <code class="inline">5423</code> on the BlueOS host
+                  (host networking, so it is reachable as <code class="inline">localhost:5423</code>
+                  from the autopilot, the Pi, or any container on the same vehicle network).
+                  Every endpoint is a simple HTTP GET that returns JSON.
+                </p>
+                <v-simple-table dense>
+                  <thead>
+                    <tr>
+                      <th style="width: 80px;">Method</th>
+                      <th style="width: 220px;">Path</th>
+                      <th>Purpose</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="e in endpoints" :key="e.path">
+                      <td><code class="inline">{{ e.method }}</code></td>
+                      <td><code class="inline">{{ e.path }}</code></td>
+                      <td>{{ e.purpose }}</td>
+                    </tr>
+                  </tbody>
+                </v-simple-table>
+              </v-card>
+
+              <!-- Lua usage example -->
+              <v-card elevation="3" rounded="lg" class="pa-5 mb-4">
+                <div class="d-flex align-center mb-3">
+                  <v-icon left>mdi-language-lua</v-icon>
+                  <span class="text-h6">Driving SubReels from a Lua script</span>
+                </div>
+                <p>
+                  ArduPilot Lua does not ship a high-level HTTP client, but it does expose a raw TCP socket via
+                  <code class="inline">Socket()</code>. Reaching SubReels is therefore a matter of opening a socket
+                  to the BlueOS host on port <code class="inline">5423</code> and sending a one-line HTTP/1.1 request.
+                  The block below is lifted directly from <code class="inline">HAUV.lua</code> in this repository:
+                </p>
+<pre class="code-block"><span class="com">-- Trigger SubReels: HTTP GET /start over a raw TCP socket.</span>
+<span class="com">-- Mirrors the start_video_recording / stop_video_recording functions in HAUV.lua.</span>
+HTTP_HOST = <span class="str">"localhost"</span>
+HTTP_PORT = 5423
+
+<span class="kw">function</span> start_video_recording()
+    <span class="kw">local</span> sock = Socket(0)            <span class="com">-- 0 = TCP</span>
+    <span class="kw">if</span> <span class="kw">not</span> sock:bind(<span class="str">"0.0.0.0"</span>, 9988) <span class="kw">then</span>
+        gcs:send_text(6, <span class="str">"Failed to bind socket"</span>)
+        sock:close(); <span class="kw">return</span> <span class="kw">false</span>
+    <span class="kw">end</span>
+    <span class="kw">if</span> <span class="kw">not</span> sock:connect(HTTP_HOST, HTTP_PORT) <span class="kw">then</span>
+        gcs:send_text(6, string.format(<span class="str">"Failed to connect to %s:%d"</span>, HTTP_HOST, HTTP_PORT))
+        sock:close(); <span class="kw">return</span> <span class="kw">false</span>
+    <span class="kw">end</span>
+    <span class="kw">local</span> req = <span class="str">"GET /start HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n"</span>
+    sock:send(req, string.len(req))
+    sock:close()
+    <span class="kw">return</span> <span class="kw">true</span>
+<span class="kw">end</span>
+
+<span class="com">-- ...later, inside the dive state machine:</span>
+<span class="kw">if</span> depth &gt; recording_depth:get() <span class="kw">and</span> is_recording == 0 <span class="kw">then</span>
+    <span class="kw">if</span> start_video_recording() <span class="kw">then</span> is_recording = 1 <span class="kw">end</span>
+<span class="kw">end</span></pre>
+                <p class="mt-3 mb-0">
+                  <code class="inline">stop_video_recording()</code> mirrors the above with
+                  <code class="inline">GET /stop</code>.
+                  The full annotated state machine — countdown, descent with dynamic throttle adjustment, bottom-strike
+                  detection, altitude-hold during the hover, and surfacing — is in
+                  <code class="inline">HAUV.lua</code> at the repo root.
+                </p>
+              </v-card>
+
+              <!-- VP-AUV mission parameters -->
+              <v-card elevation="3" rounded="lg" class="pa-5 mb-4">
+                <div class="d-flex align-center mb-3">
+                  <v-icon left>mdi-tune-variant</v-icon>
+                  <span class="text-h6">VP-AUV mission parameters</span>
+                </div>
+                <p>
+                  If you are replicating the
+                  <strong>Vertical Profiling AUV</strong> drop-cam mission profile, the companion Lua script
+                  (<code class="inline">HAUV.lua</code>) registers a <code class="inline">HOVER_*</code> parameter family
+                  under ArduPilot. These parameters are <em>not</em> part of SubReels itself — they live on the autopilot
+                  and configure the dive — but they are listed here for convenience because every dive parameter
+                  from countdown to bottom-strike to hover time can be tuned through
+                  <strong>BlueOS &rarr; Vehicle Setup &rarr; Autopilot Parameters</strong> without editing code.
+                  Going from a 60&nbsp;m test dive to a 410&nbsp;m deep dive is a single change to
+                  <code class="inline">HOVER_T_DEPTH</code>.
+                </p>
+                <v-simple-table dense>
+                  <thead>
+                    <tr>
+                      <th style="width: 200px;">Parameter</th>
+                      <th style="width: 90px;">Default</th>
+                      <th style="width: 70px;">Units</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="p in hoverParams" :key="p.name">
+                      <td><code class="inline">{{ p.name }}</code></td>
+                      <td>{{ p.default }}</td>
+                      <td>{{ p.units }}</td>
+                      <td>{{ p.desc }}</td>
+                    </tr>
+                  </tbody>
+                </v-simple-table>
+              </v-card>
+
+              <!-- References -->
+              <v-card elevation="3" rounded="lg" class="pa-5 mb-4">
+                <div class="d-flex align-center mb-3">
+                  <v-icon left>mdi-bookmark-multiple-outline</v-icon>
+                  <span class="text-h6">References</span>
+                </div>
+                <ul>
+                  <li>
+                    <code class="inline">HAUV.lua</code> in this repository — full annotated VP-AUV state machine
+                    (countdown, descent, bottom-strike, hover, surfacing, abort) plus the
+                    <code class="inline">start_video_recording()</code>&nbsp;/
+                    <code class="inline">stop_video_recording()</code> helpers shown above.
+                  </li>
+                  <li>
+                    ArduPilot Lua scripting bindings &mdash;
+                    <a href="https://ardupilot.org/copter/docs/common-lua-scripts.html" target="_blank" rel="noopener">
+                      ardupilot.org/copter/docs/common-lua-scripts.html
+                    </a>
+                  </li>
+                  <li>
+                    BlueOS extension development docs &mdash;
+                    <a href="https://blueos.cloud/docs/blueos/latest/development/extensions/" target="_blank" rel="noopener">
+                      blueos.cloud/docs/.../development/extensions
+                    </a>
+                  </li>
+                  <li>
+                    Tony's GitHub (extensions and Lua scripts) &mdash;
+                    <a href="https://github.com/vshie" target="_blank" rel="noopener">github.com/vshie</a>
+                  </li>
+                </ul>
+                <p class="text-caption grey--text mb-0">
+                  External links are listed for reference. They require internet access from your browsing device —
+                  the SubReels UI itself runs entirely from assets vendored under
+                  <code class="inline">/static/vendor/</code> and works fully offline.
+                </p>
+              </v-card>
+
+            </v-container>
+          </v-tab-item>
+        </v-tabs-items>
+      </v-main>
+
+      <v-snackbar v-model="errorSnackbar" :timeout="6000" color="error" right top>
+        {{ errorMessage }}
+        <template v-slot:action="{ attrs }">
+          <v-btn text v-bind="attrs" @click="errorSnackbar = false">Dismiss</v-btn>
+        </template>
+      </v-snackbar>
+    </v-app>
+  </div>
+
+  <script src="/static/vendor/js/vue.min.js"></script>
+  <script src="/static/vendor/js/vuetify.min.js"></script>
+  <script src="/static/vendor/js/axios.min.js"></script>
+
+  <script>
+    new Vue({
+      el: '#app',
+      vuetify: new Vuetify({
+        theme: {
+          dark: true,
+          themes: {
+            dark: {
+              primary:   '#1976d2',
+              secondary: '#b07028',
+              accent:    '#d4a14a',
+              error:     '#cf6679',
+              success:   '#4caf50',
+              info:      '#2196f3',
+              warning:   '#fb8c00',
+            },
+          },
+        },
+        icons: { iconfont: 'mdi' },
+      }),
+      data: () => ({
+        tab: 'recording',
+        recording: false,
+        startTime: null,
+        nowTick: 0,
+        busy: false,
+        status: { h264_process_alive: false, rtsp_process_alive: false },
+        telemetry: { depth: null, climb: null, temperature: null, lights: null, timestamp: null },
+        videos: [],
+        videosLoading: false,
+        errorMessage: '',
+        errorSnackbar: false,
+        timers: {},
+        fileBrowserUrl: '',
+        servicePort: 5423,
+        endpoints: [
+          { method: 'GET', path: '/start',                purpose: 'Begin recording every available stream. Returns {"success": true} or {"success": false, "message": "..."}.' },
+          { method: 'GET', path: '/stop',                 purpose: 'End recording. Sends SIGINT to GStreamer for clean EOS so the .mp4 finalizes correctly.' },
+          { method: 'GET', path: '/status',               purpose: '{recording, start_time, h264_process_alive, rtsp_process_alive}.' },
+          { method: 'GET', path: '/telemetry',            purpose: 'Live MAVLink-derived snapshot: depth, climb, temperature, lights, timestamp.' },
+          { method: 'GET', path: '/list',                 purpose: 'List of .mp4 filenames in /app/videorecordings.' },
+          { method: 'GET', path: '/download/<filename>',  purpose: 'Serves a recording as a download attachment.' },
+          { method: 'GET', path: '/register_service',     purpose: 'BlueOS extension manifest (consumed by BlueOS itself).' },
+        ],
+        hoverParams: [
+          { name: 'HOVER_DELAY_S',     default: '30',   units: 's',   desc: 'Countdown before dive starts.' },
+          { name: 'HOVER_LIGHT_D',     default: '200.0', units: 'm',  desc: 'Depth at which lights turn on.' },
+          { name: 'HOVER_HOVER_M',     default: '2.0',  units: 'min', desc: 'Minutes to hover at target depth.' },
+          { name: 'HOVER_SURF_D',      default: '2.0',  units: 'm',   desc: 'Surface depth threshold.' },
+          { name: 'HOVER_MAX_AH',      default: '12.0', units: 'Ah',  desc: 'Max battery amp-hours consumed before abort.' },
+          { name: 'HOVER_MIN_V',       default: '13.0', units: 'V',   desc: 'Minimum battery voltage before abort.' },
+          { name: 'HOVER_REC_DEPTH',   default: '50.0', units: 'm',   desc: 'Depth at which video recording starts (script calls /start at this depth).' },
+          { name: 'HOVER_H_OFF',       default: '3',    units: 'm',   desc: 'Hover this far above target depth (or above the actual max depth if the bottom is hit first).' },
+          { name: 'HOVER_T_DEPTH',     default: '410',  units: 'm',   desc: 'Target / max depth; vehicle hovers above this if reached.' },
+          { name: 'HOVER_D_THRTL',     default: '1750', units: 'PWM', desc: 'Descent throttle (PWM µs).' },
+          { name: 'HOVER_A_THRTL',     default: '1460', units: 'PWM', desc: 'Ascent throttle (PWM µs); used when passive climb rate is insufficient.' },
+          { name: 'HOVER_SIM_MODE',    default: '0',    units: '—',   desc: '0 = normal, 1 = SITL simulation (auto-cycles the start switch).' },
+          { name: 'HOVER_MAX_D_RATE',  default: '1.0',  units: 'm/s', desc: 'Maximum descent rate.' },
+          { name: 'HOVER_MIN_A_RATE',  default: '0.7',  units: 'm/s', desc: 'Minimum ascent rate.' },
+          { name: 'HOVER_WS_EN',       default: '1',    units: '—',   desc: 'Water sampling enable: 0 = off, non-zero = on.' },
+          { name: 'HOVER_THRTL_STEP',  default: '2',    units: 'PWM', desc: 'Throttle adjustment step size.' },
+          { name: 'HOVER_T_BUFFER',    default: '1.3',  units: '×',   desc: 'Buffer multiplier for dive/ascent timeout calculation.' },
+          { name: 'HOVER_SURF_DEPTH',  default: '0.65', units: 'm',   desc: 'Depth threshold below which surface-holding throttle increases.' },
+          { name: 'HOVER_WS_INTERVAL', default: '5.0',  units: 'm',   desc: 'Water sampling depth interval (only if HOVER_WS_EN > 0).' },
+          { name: 'HOVER_WS_HTIME',    default: '0.5',  units: 'min', desc: 'Hover time at each water sampling stop.' },
+        ],
+      }),
+      computed: {
+        elapsed() {
+          if (!this.recording || !this.startTime) return '00:00:00';
+          // Force reactive dependency on the 1Hz tick so the timer ticks live.
+          this.nowTick; // eslint-disable-line no-unused-expressions
+          const totalSeconds = Math.floor((Date.now() - this.startTime.getTime()) / 1000);
+          const hh = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+          const mm = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+          const ss = String(totalSeconds % 60).padStart(2, '0');
+          return `${hh}:${mm}:${ss}`;
+        },
+        h264Label() {
+          if (this.status.h264_process_alive) return 'Active';
+          if (this.recording) return 'Skipped (no /dev/video2)';
+          return 'Idle';
+        },
+        rtspLabel() {
+          if (this.status.rtsp_process_alive) return 'Active';
+          return 'Idle';
+        },
+        telemetryTiles() {
+          const t = this.telemetry;
+          const fmt = (v, suffix, digits = 1) =>
+            v == null ? '—' : Number(v).toFixed(digits) + (suffix || '');
+          return [
+            { label: 'Depth',  icon: 'mdi-arrow-down-bold-circle', color: 'blue lighten-2',   value: fmt(t.depth, ' m', 1) },
+            { label: 'Climb',  icon: 'mdi-arrow-up-down',          color: 'cyan lighten-2',   value: fmt(t.climb, ' m/s', 2) },
+            { label: 'Temp',   icon: 'mdi-thermometer',            color: 'orange lighten-2', value: fmt(t.temperature, ' °C', 1) },
+            { label: 'Lights', icon: 'mdi-lightbulb-on',           color: 'amber lighten-2',  value: t.lights == null ? '—' : t.lights + '%' },
+            { label: 'Time',   icon: 'mdi-clock-outline',          color: 'grey lighten-1',   value: t.timestamp || '—' },
+          ];
+        },
+        videoHeaders() {
+          return [
+            { text: 'Filename', value: 'name',     sortable: true },
+            { text: 'Stream',   value: 'stream',   sortable: true, width: 110 },
+            { text: 'Recorded', value: 'recorded', sortable: true, width: 200 },
+            { text: '',         value: 'actions',  sortable: false, align: 'end', width: 160 },
+          ];
+        },
+        videoItems() {
+          return this.videos.map((name) => {
+            let stream = 'Other';
+            if (name.startsWith('video_h264_')) stream = 'H.264';
+            else if (name.startsWith('video_rtsp_')) stream = 'H.265';
+            const m = name.match(/(\d{8})_(\d{6})/);
+            let recorded = '';
+            if (m) {
+              const d = m[1];
+              const t = m[2];
+              recorded = `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)} `
+                       + `${t.slice(0, 2)}:${t.slice(2, 4)}:${t.slice(4, 6)}`;
             }
-            updateUIToRecording();
-        } else if (!isRecording && currentUIState) {
-            console.log("Detected recording stopped externally");
-            updateUIToStopped();
-            // Refresh video list when recording stops
-            await fetchVideos();
-        }
-    } catch (error) {
-        console.error("Error checking recording status:", error);
-    }
-}
-
-async function fetchTelemetry() {
-    try {
-        console.log("Fetching telemetry data...");
-        const response = await axios.get('/telemetry');
-        console.log("Telemetry response:", response.data);
-        
-        if (response.data.success) {
-            document.getElementById("telemetryDepth").textContent = `${response.data.depth} m`;
-            document.getElementById("telemetryClimb").textContent = `${response.data.climb} m/s`;
-            document.getElementById("telemetryTemp").textContent = `${response.data.temperature} °C`;
-            document.getElementById("telemetryLights").textContent = `${response.data.lights}%`;
-            document.getElementById("telemetryTime").textContent = response.data.timestamp;
-        } else {
-            console.error("Telemetry request failed:", response.data.message);
-        }
-    } catch (error) {
-        console.error("Failed to fetch telemetry:", error);
-        // Don't show error on UI as this happens frequently and we don't want to alarm users
-    }
-}
-
-async function fetchVideos() {
-    try {
-        const response = await axios.get('/list');
-        const videoList = document.getElementById("videoList");
-        videoList.innerHTML = '';
-        response.data.videos.forEach(video => {
-            const li = document.createElement('li');
-            const a = document.createElement('a');
-            a.href = `/download/${video}`;
-            a.textContent = video;
-            li.appendChild(a);
-            videoList.appendChild(li);
-        });
-    } catch (error) {
-        console.error("Error fetching videos:", error);
-    }
-}
-
-// Initial setup
-fetchVideos();
-fetchTelemetry();
-checkRecordingStatus();  // Check initial status
-
-// Set up periodic refreshes
-fileListTimer = setInterval(fetchVideos, 5000);
-telemetryTimer = setInterval(fetchTelemetry, 5000);
-statusCheckTimer = setInterval(checkRecordingStatus, 2000);  // Check status every 2 seconds
-
-// Set the iframe source dynamically based on the current host
-window.addEventListener('load', () => {
-    const iframe = document.querySelector('iframe');
-    iframe.src = `http://${window.location.hostname}:7777/files/extensions/subreels`;
-});
-
-// Clean up timers when page is unloaded
-window.addEventListener('unload', () => {
-    clearInterval(fileListTimer);
-    clearInterval(recordingTimer);
-    clearInterval(telemetryTimer);
-    clearInterval(statusCheckTimer);  // Clean up new timer
-});
-</script>
+            return { name, stream, recorded };
+          });
+        },
+      },
+      methods: {
+        showError(message) {
+          this.errorMessage = message;
+          this.errorSnackbar = true;
+        },
+        async startRecording() {
+          this.busy = true;
+          try {
+            const { data } = await axios.get('/start');
+            if (!data.success) throw new Error(data.message || 'Failed to start recording');
+            await this.fetchStatus();
+          } catch (e) {
+            this.showError(e.response?.data?.message || e.message || 'Unknown error');
+          } finally {
+            this.busy = false;
+          }
+        },
+        async stopRecording() {
+          this.busy = true;
+          try {
+            const { data } = await axios.get('/stop');
+            if (!data.success) throw new Error(data.message || 'Failed to stop recording');
+            await this.fetchStatus();
+            await this.fetchVideos();
+          } catch (e) {
+            this.showError(e.response?.data?.message || e.message || 'Unknown error');
+          } finally {
+            this.busy = false;
+          }
+        },
+        async fetchStatus() {
+          try {
+            const { data } = await axios.get('/status');
+            this.status = data;
+            const wasRecording = this.recording;
+            this.recording = !!data.recording;
+            if (this.recording) {
+              this.startTime = data.start_time
+                ? new Date(data.start_time)
+                : (this.startTime || new Date());
+            } else {
+              this.startTime = null;
+              if (wasRecording) this.fetchVideos();
+            }
+          } catch (e) {
+            // Status polls run frequently; don't pop a snackbar on transient failures.
+            console.error('status:', e);
+          }
+        },
+        async fetchTelemetry() {
+          try {
+            const { data } = await axios.get('/telemetry');
+            if (data.success) this.telemetry = data;
+          } catch (e) {
+            console.error('telemetry:', e);
+          }
+        },
+        async fetchVideos() {
+          this.videosLoading = true;
+          try {
+            const { data } = await axios.get('/list');
+            this.videos = data.videos || [];
+          } catch (e) {
+            this.showError('Failed to load video list: ' + (e.message || 'unknown error'));
+          } finally {
+            this.videosLoading = false;
+          }
+        },
+      },
+      mounted() {
+        this.fileBrowserUrl = `http://${window.location.hostname}:7777/files/extensions/subreels`;
+        this.fetchStatus();
+        this.fetchTelemetry();
+        this.fetchVideos();
+        this.timers.status    = setInterval(this.fetchStatus,    2000);
+        this.timers.telemetry = setInterval(this.fetchTelemetry, 5000);
+        this.timers.videos    = setInterval(this.fetchVideos,    5000);
+        this.timers.tick      = setInterval(() => { this.nowTick++; }, 1000);
+      },
+      watch: {
+        recording(isRec) {
+          if (this.timers.telemetry) clearInterval(this.timers.telemetry);
+          this.timers.telemetry = setInterval(this.fetchTelemetry, isRec ? 1000 : 5000);
+        },
+      },
+      beforeDestroy() {
+        Object.values(this.timers).forEach(clearInterval);
+      },
+    });
+  </script>
 </body>
 </html>

@@ -207,7 +207,7 @@ def register_service():
         "description": "Record video from connected cameras with telemetry subtitles",
         "icon": "mdi-video",
         "company": "Blue Robotics",
-        "version": "0.5",
+        "version": "0.1.0",
         "webpage": "https://github.com/vshie/SubReels",
         "api": "https://github.com/bluerobotics/BlueOS-docker"
     }
