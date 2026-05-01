@@ -37,6 +37,8 @@ An ArduPilot Lua script that controls automated dive missions for a hovering AUV
 
 A new image is published to Docker Hub on every push to `main` via the
 `Deploy BlueOS Extension Image` GitHub Action (see `.github/workflows/deploy.yml`).
+The action automatically prepends `blueos-` to the configured image name,
+so the published image is `vshie/blueos-subreels` (not `vshie/subreels`).
 To install it manually:
 
 1. Open BlueOS in your browser.
@@ -45,7 +47,7 @@ To install it manually:
 3. Fill in the dialog:
    - **Extension Identifier:** `vshie.subreels`
    - **Extension Name:** `SubReels`
-   - **Docker image:** `vshie/subreels`
+   - **Docker image:** `vshie/blueos-subreels`
    - **Docker tag:** `main`
    - **Permissions:** copy and paste the JSON block below verbatim.
 
@@ -98,12 +100,12 @@ locally and point BlueOS at it:
 ```bash
 git clone https://github.com/vshie/SubReels.git
 cd SubReels
-docker build -t subreels:local .
+docker build -t blueos-subreels:local .
 ```
 
 Then in the **Installed Extensions → +** dialog, set **Docker image** to
-`subreels` and **Docker tag** to `local` (and reuse the same permissions
-JSON from Option A).
+`blueos-subreels` and **Docker tag** to `local` (and reuse the same
+permissions JSON from Option A).
 
 #### Camera setup gotchas
 
