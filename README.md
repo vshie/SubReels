@@ -33,11 +33,90 @@ An ArduPilot Lua script that controls automated dive missions for a hovering AUV
 
 ### SubReels Extension Setup
 
+#### Option A — Manual install in BlueOS (recommended)
 
-1. **Configure video device access:**
-   - Navigate to BlueOS Video Streams page
-   - **Disable any existing `/dev/video2` camera streams**
-   - This ensures the extension has exclusive access to the video device
+A new image is published to Docker Hub on every push to `main` via the
+`Deploy BlueOS Extension Image` GitHub Action (see `.github/workflows/deploy.yml`).
+To install it manually:
+
+1. Open BlueOS in your browser.
+2. Go to **Extensions → Installed Extensions** and click the **+** button
+   in the bottom-right.
+3. Fill in the dialog:
+   - **Extension Identifier:** `vshie.subreels`
+   - **Extension Name:** `SubReels`
+   - **Docker image:** `vshie/subreels`
+   - **Docker tag:** `main`
+   - **Permissions:** copy and paste the JSON block below verbatim.
+
+   ```json
+   {
+     "ExposedPorts": {
+       "5423/tcp": {}
+     },
+     "HostConfig": {
+       "Binds": [
+         "/usr/blueos/extensions/subreels:/app/videorecordings",
+         "/dev/video2:/dev/video2"
+       ],
+       "ExtraHosts": ["host.docker.internal:host-gateway"],
+       "PortBindings": {
+         "5423/tcp": [
+           {
+             "HostPort": ""
+           }
+         ]
+       },
+       "NetworkMode": "host",
+       "Privileged": true
+     }
+   }
+   ```
+
+4. Click **Create**. BlueOS will pull the image from Docker Hub and start the
+   container.
+5. Once it shows as running, click the SubReels icon in the BlueOS sidebar
+   to open the dashboard.
+
+The permissions block above is identical to the `LABEL permissions` baked
+into the Docker image and tells BlueOS to:
+
+- **Bind `/usr/blueos/extensions/subreels` → `/app/videorecordings`** so
+  recordings persist on the BlueOS host and are visible in the BlueOS file
+  browser at `http://<host>:7777/files/extensions/subreels/`.
+- **Bind `/dev/video2` → `/dev/video2`** so the container can open the USB
+  camera. Requires that `/dev/video2` is *not* configured on the BlueOS
+  Video Streams page (see *Camera setup gotchas* below).
+- **Use host networking, privileged mode, and `host.docker.internal`** so
+  the container can reach MAVLink2REST on the BlueOS host for telemetry.
+
+#### Option B — Build a local image
+
+If you want to test changes before they hit Docker Hub, build the image
+locally and point BlueOS at it:
+
+```bash
+git clone https://github.com/vshie/SubReels.git
+cd SubReels
+docker build -t subreels:local .
+```
+
+Then in the **Installed Extensions → +** dialog, set **Docker image** to
+`subreels` and **Docker tag** to `local` (and reuse the same permissions
+JSON from Option A).
+
+#### Camera setup gotchas
+
+- **`/dev/video2` must NOT be added to the BlueOS Video Streams page.**
+  SubReels needs exclusive access to the USB camera while recording.
+  As a result, you will not see a Cockpit preview from the USB camera
+  while this extension is installed — that is intentional, since for a
+  tetherless dive there is no surface to preview to anyway. The RTSP H.265
+  RadCam stream is unaffected and can be previewed normally.
+- The RTSP endpoint is currently hardcoded in `app/main.py`
+  (`RTSP_H265_ENDPOINT`, default `rtsp://admin:blue@192.168.2.10:554/stream_0`).
+  If your IP camera lives at a different address or uses different
+  credentials, edit that constant and rebuild the image.
 
 ### HAUV Lua Script Setup
 
