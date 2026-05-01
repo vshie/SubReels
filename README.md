@@ -92,20 +92,31 @@ into the Docker image and tells BlueOS to:
 - **Use host networking, privileged mode, and `host.docker.internal`** so
   the container can reach MAVLink2REST on the BlueOS host for telemetry.
 
-#### Option B — Build a local image
+#### Option B — Build a local image and install from file
 
 If you want to test changes before they hit Docker Hub, build the image
-locally and point BlueOS at it:
+locally, export it as a `.tar`, and upload that file directly to BlueOS:
 
-```bash
-git clone https://github.com/vshie/SubReels.git
-cd SubReels
-docker build -t blueos-subreels:local .
-```
+1. Build the image and save it to a `.tar` file:
 
-Then in the **Installed Extensions → +** dialog, set **Docker image** to
-`blueos-subreels` and **Docker tag** to `local` (and reuse the same
-permissions JSON from Option A).
+   ```bash
+   git clone https://github.com/vshie/SubReels.git
+   cd SubReels
+   docker build -t blueos-subreels:local .
+   docker save -o blueos-subreels-local.tar blueos-subreels:local
+   ```
+
+2. Copy `blueos-subreels-local.tar` to the machine where you have BlueOS
+   open in your browser.
+3. In BlueOS, go to **Extensions → Installed Extensions** and click the
+   **+** button in the **bottom-right** corner.
+4. Choose **Install from file** and select the `blueos-subreels-local.tar`
+   file you just built.
+5. When prompted, reuse the same **permissions JSON** from Option A so
+   the container gets access to the camera, recordings folder, and host
+   networking.
+6. Once the upload finishes and the container shows as running, click the
+   SubReels icon in the BlueOS sidebar to open the dashboard.
 
 #### Camera setup gotchas
 
