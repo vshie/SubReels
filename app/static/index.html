@@ -18,10 +18,11 @@
     [v-cloak] { display: none; }
     html, body { overflow-y: auto; }
 
-    /* Parchment-toned card to flatter the steampunk logo against the dark theme. */
+    /* Match the surrounding dark Vuetify cards so the steampunk image blends
+       into the dark theme instead of sitting on a parchment patch. */
     .logo-card {
-      background: #f4ecd8 !important;
-      border: 1px solid rgba(0, 0, 0, 0.12) !important;
+      background: #1e1e1e !important;
+      border: 1px solid rgba(255, 255, 255, 0.08) !important;
     }
     .logo-card img {
       display: block;
@@ -31,8 +32,9 @@
       object-fit: contain;
     }
     .logo-card .tagline {
-      color: #5a4a2a;
+      color: #ffeb3b;
       letter-spacing: 0.18em;
+      font-weight: 600;
     }
 
     .telemetry-value {
