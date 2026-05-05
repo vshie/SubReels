@@ -109,7 +109,16 @@
         <span v-if="recording" class="text-caption font-weight-medium">{{ elapsed }}</span>
 
         <template v-slot:extension>
-          <v-tabs v-model="tab" align-with-title background-color="transparent" slider-color="accent">
+          <!-- color="white" on v-tabs sets the ACTIVE tab text/icon color.
+               Without it, Vuetify defaults the active tab to theme primary (#1976d2),
+               which is the same blue as this app-bar's background → invisible label. -->
+          <v-tabs
+            v-model="tab"
+            align-with-title
+            background-color="transparent"
+            color="white"
+            slider-color="accent"
+          >
             <v-tab href="#recording">
               <v-icon left small>mdi-video</v-icon> Recording
             </v-tab>
