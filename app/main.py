@@ -205,7 +205,7 @@ def register_service():
     # safely served from /extensionv2/<sanitized_name>/ without breaking asset paths.
     return '''
     {
-        "name": "SubReels",
+        "name": "SubReels: AUV",
         "description": "Record video from connected cameras with telemetry subtitles",
         "icon": "mdi-video",
         "company": "Blue Robotics",
