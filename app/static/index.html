@@ -302,14 +302,15 @@
                 </div>
                 <p>
                   SubReels is a BlueOS extension that records video <strong>onboard the vehicle</strong>,
-                  on demand or on a schedule, and burns live MAVLink-derived telemetry into a
+                  on demand from a Lua script or some other process running on the vehicle or on the network,
+                  and burns live MAVLink-derived telemetry into a
                   <code class="inline">.ass</code> subtitle sidecar alongside each recording.
                   It is aimed at the niche where the camera feed cannot be sent to the surface in real time —
-                  drop-cameras, AUVs, and other tetherless platforms where the recording must be saved on the vehicle itself.
+                  like AUVs, and other tetherless platforms where the recording must be saved on the vehicle itself.
                 </p>
                 <p>Two streams are captured in parallel when both sources are available:</p>
                 <ul>
-                  <li><strong>USB H.264</strong> from an exploreHD camera on <code class="inline">/dev/video2</code></li>
+                  <li><strong>USB H.264</strong> e.g. from an exploreHD camera on <code class="inline">/dev/video2</code></li>
                   <li>
                     <strong>RTSP H.265</strong> from a RadCam at
                     <code class="inline">rtsp://admin:blue@192.168.2.10:554/stream_0</code>
@@ -319,15 +320,12 @@
                 <p>
                   If <code class="inline">/dev/video2</code> is not present at start time, the USB recording is silently skipped
                   and the RTSP stream still records. Recording state and per-stream liveness are reported on the
-                  <strong>Recording</strong> tab and via the <code class="inline">/status</code> endpoint.
+                  <strong>Recording</strong> tab and via the <code class="inline">/status</code> endpoint —
+                  you won't see this in the field but it's handy on the bench!
                 </p>
                 <v-alert type="info" outlined dense class="mt-3 mb-0">
-                  <strong>Adjacent extensions.</strong>
-                  Blue Robotics' <em>DashCam</em> (Willian Galvani) auto-records any RTSP stream when the vehicle is armed
-                  and is available in the BlueOS Extensions Manager without manual install.
-                  BlueOS 1.5+ ships a similar &ldquo;record on arm&rdquo; feature with Foxglove playback.
                   SubReels exists for the case where you need <strong>explicit start/stop control from a script</strong>
-                  (or an external service) instead of tying recording to ARM state.
+                  (or an external service) instead of tying recording to ARM state, like other solutions for BlueOS.
                 </v-alert>
               </v-card>
 
