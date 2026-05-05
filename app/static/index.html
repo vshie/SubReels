@@ -367,7 +367,7 @@
                 <ol>
                   <li>Open BlueOS &rarr; <strong>Vehicle Setup &rarr; Autopilot Parameters</strong>.</li>
                   <li>Set <code class="inline">SCR_ENABLE = 1</code>.</li>
-                  <li>Reboot the autopilot (<strong>Vehicle Setup &rarr; Autopilot &rarr; Restart</strong>).</li>
+                  <li>Click the yellow <strong>save and reboot</strong> button.</li>
                   <li>
                     <em>Recommended:</em> raise <code class="inline">SCR_HEAP_SIZE</code> to at least
                     <code class="inline">100000</code> if your script does string-heavy work like building HTTP requests
@@ -375,12 +375,12 @@
                   </li>
                 </ol>
                 <p>
-                  Drop your <code class="inline">.lua</code> files into <code class="inline">/APM/scripts/</code>
-                  on the BlueOS host (the easiest route is the BlueOS file browser at
-                  <code class="inline">http://&lt;host&gt;:7777/files/ardupilot-firmware/scripts/</code>).
+                  Drop your <code class="inline">.lua</code> files into the
+                  <code class="inline">ardupilot_logs &rarr; firmware &rarr; scripts</code>
+                  directory in BlueOS via the file explorer in <strong>Pirate Mode</strong>.
                   ArduPilot loads them on autopilot boot; restart the autopilot after editing to pick up changes.
-                  Lua errors surface as GCS messages in Cockpit's notification area with the offending line number,
-                  which makes the
+                  Lua errors surface as GCS messages in <strong>Cockpit</strong> or <strong>QGroundControl</strong>
+                  notification area with the offending line number, which makes the
                   <em>edit &rarr; restart autopilot &rarr; observe in SITL</em>
                   iteration loop fast.
                 </p>
@@ -389,7 +389,7 @@
                   exposes <code class="inline">HOVER_SIM_MODE = 1</code> which simulates the physical
                   start switch so the full state machine
                   (countdown &rarr; descend &rarr; bottom-strike &rarr; ascend-to-hover &rarr; surface) runs end-to-end on a
-                  desk before you trust the wiring at 400 m.
+                  desk before you trust the system at depth.
                 </v-alert>
               </v-card>
 
