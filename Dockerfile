@@ -43,7 +43,7 @@ ENV FLASK_APP=main.py
 # Expose port
 EXPOSE 5423
 
-LABEL version="0.1.0"
+LABEL version="1.0.0"
 
 ARG IMAGE_NAME
 LABEL permissions='\
@@ -82,18 +82,28 @@ ARG MAINTAINER
 ARG MAINTAINER_EMAIL
 LABEL company='\
 {\
-        "about": "",\
+        "about": "Onboard video recording and automated dive-mission control for hovering AUVs running BlueOS / ArduSub.",\
         "name": "Blue Robotics",\
         "email": "support@bluerobotics.com"\
     }'
 LABEL type="tool"
+LABEL tags='[\
+    "video",\
+    "recording",\
+    "ardusub",\
+    "auv",\
+    "mission",\
+    "lua"\
+]'
 
 ARG REPO
 ARG OWNER
-LABEL readme=''
+LABEL readme='https://raw.githubusercontent.com/vshie/SubReels/{tag}/README.md'
 LABEL links='\
 {\
-        "source": ""\
+        "source": "https://github.com/vshie/SubReels",\
+        "website": "https://bluerobotics.com",\
+        "support": "mailto:support@bluerobotics.com"\
     }'
 LABEL requirements="core >= 1.1"
 
